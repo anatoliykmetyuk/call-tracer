@@ -2,6 +2,8 @@ package fix
 
 import scalafix.v1._
 import scala.meta._
+import java.io.{ File, PrintWriter }
+
 
 object CallTracerMode {
   val record = "record"
@@ -12,7 +14,8 @@ case class CallTracerConfig(
   targets        : Set[String]              = Set.empty
 , mode           : String                   = CallTracerMode.record
 , excludedArgs   : Set[String]              = Set.empty
-, excludedArgsFor: Map[String, Set[String]] = Map.empty)
+, excludedArgsFor: Map[String, Set[String]] = Map.empty
+, libraryLocation: String                   = "/dev/null")
 
 object CallTracerConfig {
   def default = CallTracerConfig()
@@ -36,4 +39,14 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
       val args     = t.paramss.flatten.map(_.name.value).filterNot(excluded)
       Patch.addLeft(t.body, s"{ calltracer.${mode}(${args.mkString(", ")}); ") + Patch.addRight(t.body, " }")
   }.asPatch
+
+  override def beforeStart(): Unit = {
+    val targetFile = new File(libraryLocation)
+    val libraryContents = scala.io.Source.fromResource("calltracer.scala").mkString
+    if (!targetFile.exists) {
+      val writer = new PrintWriter(targetFile)
+      writer.write(libraryContents)
+      writer.close()
+    }
+  }
 }
