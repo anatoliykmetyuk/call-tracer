@@ -1,7 +1,7 @@
 /*
 rule = CallTracer
 CallTracer = {
-  targets = [foo, g]
+  targets = [foo, g, f, h]
   excludedArgs = [y]
   excludedArgsFor.foo = [char]
 }
@@ -15,5 +15,8 @@ object CallTracer {
     println(s"This is a method with a body")
     x
   }
+
+  def f() = ""
+  def h = ""
 
 }

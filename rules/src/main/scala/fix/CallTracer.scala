@@ -17,7 +17,8 @@ case class CallTracerConfig(
 , excludedArgs   : Set[String]              = Set.empty
 , excludedArgsFor: Map[String, Set[String]] = Map.empty
 , libraryLocation: String                   = "library.scala"
-, signatureFile  : String                   = "signatures.txt")
+, signatureFile  : String                   = "signatures.txt"
+, libraryLink    : String                   = "https://raw.githubusercontent.com/anatoliykmetyuk/call-tracer/master/rules/src/main/resources/calltracer.scala")
 
 object CallTracerConfig {
   def default = CallTracerConfig()
@@ -39,7 +40,11 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
     case t: Defn.Def if targets(t.name.value) =>
       val excluded = excludedArgs ++ excludedArgsFor.getOrElse(t.name.value, Set.empty)
       val args     = t.paramss.flatten.map(_.name.value).filterNot(excluded)
-      Patch.addLeft(t.body, s"{ calltracer.trace(calltracer.currentStackFrame, ${args.mkString(", ")}); ") + Patch.addRight(t.body, " }")
+
+      val argsStr = if (args.isEmpty) "" else s", ${args.mkString(", ")}"
+      val tracer = s"{ calltracer.trace(calltracer.currentStackFrame${argsStr}); "
+
+      Patch.addLeft(t.body, tracer) + Patch.addRight(t.body, " }")
   }.asPatch
 
   override def beforeStart(): Unit = {
@@ -53,7 +58,7 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
   }
 
   def loadLibrary(): String = {
-    val libraryTemplate = scala.io.Source.fromResource("calltracer.scala").mkString
+    val libraryTemplate = scala.io.Source.fromURL(libraryLink).mkString
     val variableRegex = """#\{([\w\d_-]+)\}""".r
     variableRegex.replaceAllIn(libraryTemplate,
       m => m.group(1) match {

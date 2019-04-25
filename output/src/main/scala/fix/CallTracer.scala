@@ -8,4 +8,7 @@ object CallTracer {
     x
   } }
 
+  def f() = { calltracer.trace(calltracer.currentStackFrame); "" }
+  def h = { calltracer.trace(calltracer.currentStackFrame); "" }
+
 }
