@@ -3,9 +3,7 @@ rule = CallTracer
 CallTracer = {
   targets = [foo, g]
   excludedArgs = [y]
-  excludedArgsFor = {
-    foo = [char]
-  }
+  excludedArgsFor.foo = [char]
 }
 */
 package fix
