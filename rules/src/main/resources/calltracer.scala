@@ -45,5 +45,6 @@ package object calltracer {
     s"${method}: ${args.mkString(", ")}"
 
   def currentStackFrame: StackTraceElement = Thread.currentThread.getStackTrace.toList match {
-    case getStackTrace :: currentStackFrame :: target :: _ => target }
+    case getStackTrace :: currentStackFrame :: target :: _ => target
+    case x => throw new RuntimeException(s"Calltracer cannot analyse the following stack trace:\n${x.map("  " + _).mkString("\n")}") }
 }
