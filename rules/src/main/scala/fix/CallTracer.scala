@@ -3,11 +3,16 @@ package fix
 import scalafix.v1._
 import scala.meta._
 
+object CallTracerMode {
+  val record = "record"
+  val visit  = "visit"
+}
+
 case class CallTracerConfig(
   targets        : Set[String]              = Set.empty
+, mode           : String                   = CallTracerMode.record
 , excludedArgs   : Set[String]              = Set.empty
-, excludedArgsFor: Map[String, Set[String]] = Map.empty
-)
+, excludedArgsFor: Map[String, Set[String]] = Map.empty)
 
 object CallTracerConfig {
   def default = CallTracerConfig()
@@ -29,6 +34,6 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
     case t: Defn.Def if targets(t.name.value) =>
       val excluded = excludedArgs ++ excludedArgsFor.getOrElse(t.name.value, Set.empty)
       val args     = t.paramss.flatten.map(_.name.value).filterNot(excluded)
-      Patch.addLeft(t.body, s"{ calltracer.traceCall(${args.mkString(", ")}); ") + Patch.addRight(t.body, " }")
+      Patch.addLeft(t.body, s"{ calltracer.${mode}(${args.mkString(", ")}); ") + Patch.addRight(t.body, " }")
   }.asPatch
 }

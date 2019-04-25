@@ -1,6 +1,7 @@
 /*
 rule = CallTracer
 CallTracer = {
+  mode = record
   targets = [foo, g]
   excludedArgs = [y]
   excludedArgsFor.foo = [char]
@@ -8,7 +9,7 @@ CallTracer = {
 */
 package fix
 
-object CallTracer {
+object CallTracerRecord {
 
   def foo[T](bar: T, char: Int)(stuff: String)(implicit x: Double, y: Double): String = stuff
   def g(x: Int, y: Double) = {
