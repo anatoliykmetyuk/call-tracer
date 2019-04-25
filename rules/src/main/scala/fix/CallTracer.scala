@@ -3,6 +3,7 @@ package fix
 import scalafix.v1._
 import scala.meta._
 import java.io.{ File, PrintWriter }
+import scala.util.matching.Regex
 
 
 object CallTracerMode {
@@ -15,7 +16,8 @@ case class CallTracerConfig(
 , mode           : String                   = CallTracerMode.record
 , excludedArgs   : Set[String]              = Set.empty
 , excludedArgsFor: Map[String, Set[String]] = Map.empty
-, libraryLocation: String                   = "/dev/null")
+, libraryLocation: String                   = "library.scala"
+, signatureFile  : String                   = "signatures.txt")
 
 object CallTracerConfig {
   def default = CallTracerConfig()
@@ -41,12 +43,22 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
   }.asPatch
 
   override def beforeStart(): Unit = {
-    val targetFile = new File(libraryLocation)
-    val libraryContents = scala.io.Source.fromResource("calltracer.scala").mkString
+    val libraryContents = loadLibrary()
+    val targetFile      = new File(libraryLocation)
     if (!targetFile.exists) {
       val writer = new PrintWriter(targetFile)
       writer.write(libraryContents)
       writer.close()
     }
+  }
+
+  def loadLibrary(): String = {
+    val libraryTemplate = scala.io.Source.fromResource("calltracer.scala").mkString
+    val variableRegex = """#\{([\w\d_-]+)\}""".r
+    variableRegex.replaceAllIn(libraryTemplate,
+      m => m.group(1) match {
+        case "mode"          => mode
+        case "signatureFile" => signatureFile
+        case _ => m.toString })
   }
 }
