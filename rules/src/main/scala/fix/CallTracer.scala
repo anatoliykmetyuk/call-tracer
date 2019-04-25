@@ -37,7 +37,7 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
     case t: Defn.Def if targets(t.name.value) =>
       val excluded = excludedArgs ++ excludedArgsFor.getOrElse(t.name.value, Set.empty)
       val args     = t.paramss.flatten.map(_.name.value).filterNot(excluded)
-      Patch.addLeft(t.body, s"{ calltracer.${mode}(${args.mkString(", ")}); ") + Patch.addRight(t.body, " }")
+      Patch.addLeft(t.body, s"{ calltracer.trace(calltracer.currentStackFrame, ${args.mkString(", ")}); ") + Patch.addRight(t.body, " }")
   }.asPatch
 
   override def beforeStart(): Unit = {
