@@ -12,13 +12,9 @@ object CallTracerMode {
 }
 
 case class CallTracerConfig(
-  targets        : Set[String]              = Set.empty
-, mode           : String                   = CallTracerMode.record
-, excludedArgs   : Set[String]              = Set.empty
-, excludedArgsFor: Map[String, Set[String]] = Map.empty
-, libraryLocation: String                   = "library.scala"
-, signatureFile  : String                   = "signatures.txt"
-, libraryLink    : String                   = "https://raw.githubusercontent.com/anatoliykmetyuk/call-tracer/master/rules/src/main/resources/calltracer.scala")
+  libraryLocation: String      = "library.scala"
+, signatureFile  : String      = "signatures.txt"
+, libraryLink    : String      = "file:////Users/anatolii/Projects/dotty/scalafix/rules/src/main/resources/calltracer.scala")
 
 object CallTracerConfig {
   def default = CallTracerConfig()
@@ -37,13 +33,8 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
       .map { newConfig => new CallTracer(newConfig) }
 
   override def fix(implicit doc: SyntacticDocument): Patch = doc.tree.collect {
-    case t: Defn.Def if targets(t.name.value) =>
-      val excluded = excludedArgs ++ excludedArgsFor.getOrElse(t.name.value, Set.empty)
-      val args     = t.paramss.flatten.map(_.name.value).filterNot(excluded)
-
-      val argsStr = if (args.isEmpty) "" else s", ${args.mkString(", ")}"
-      val tracer = s"{ calltracer.trace(calltracer.currentStackFrame${argsStr}); "
-
+    case t: Defn.Def =>
+      val tracer = s"{ calltracer.trace(calltracer.currentStackFrame); "
       Patch.addLeft(t.body, tracer) + Patch.addRight(t.body, " }")
   }.asPatch
 
@@ -62,7 +53,6 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
     val variableRegex = """#\{([\w\d_-]+)\}""".r
     variableRegex.replaceAllIn(libraryTemplate,
       m => m.group(1) match {
-        case "mode"          => mode
         case "signatureFile" => signatureFile
         case _ => m.toString })
   }
