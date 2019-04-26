@@ -1,16 +1,11 @@
 import java.io.{ File, PrintWriter }
 
 package object calltracer {
+  
+  val signatureFile = new File("#{signatureFile}")
+  val writer = new PrintWriter(signatureFile)
 
-  val signatureFile = "#{signatureFile}"
+  def trace(frame: String) = writer.println(frame)
 
-  val log = scala.collection.mutable.ListBuffer[String]()
-
-  def trace(frame: String) = log += frame
-
-  def dump() = {
-    val writer = new PrintWriter(new File(signatureFile))
-    writer.write(log.mkString("\n"))
-    writer.close()
-  }
+  def dump() = { println(s"Terminating the printer: ${signatureFile}"); writer.flush(); writer.close() }
 }
