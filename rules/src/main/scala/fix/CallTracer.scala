@@ -6,15 +6,17 @@ import java.io.{ File, PrintWriter }
 import scala.util.matching.Regex
 
 
-object CallTracerMode {
-  val record = "record"
-  val visit  = "visit"
-}
-
 case class CallTracerConfig(
-  libraryLocation: String      = "library.scala"
-, signatureFile  : String      = "signatures.txt"
-, libraryLink    : String      = "file:////Users/anatolii/Projects/dotty/calltracer/rules/src/main/resources/calltracer.scala")
+  libraryLocation: String        = "library.scala"
+, signatureFile  : String        = "signatures.txt"
+, libraryLink    : String        = "file:////Users/anatolii/Projects/dotty/calltracer/rules/src/main/resources/calltracer.scala")
+case class ArgRule(forType: List[String] = Nil, action: String = "x")
+
+object ArgRule {
+  def default = ArgRule()
+  implicit val surface = metaconfig.generic.deriveSurface[ArgRule]
+  implicit val decoder = metaconfig.generic.deriveDecoder(default)
+}
 
 object CallTracerConfig {
   def default = CallTracerConfig()
@@ -35,8 +37,15 @@ class CallTracer(config: CallTracerConfig) extends SyntacticRule("CallTracer") {
   override def fix(implicit doc: SyntacticDocument): Patch = {
     doc.tree.collect {
       case t: Defn.Def =>
-        val signature = s"${t.name.value} at ${doc.input.asInstanceOf[VirtualFile].path}:${t.name.pos.startLine+1}:${t.name.pos.startColumn+1}"
-        val tracer = s"""{ calltracer.trace("${signature}"); """
+        val args = t.paramss.flatten.map(_.name.value).map { name => s""""$name" -> $name""" } match {
+          case xs if xs.nonEmpty => ", " + xs.mkString(", ")
+          case _ => ""
+        }
+        val path      = doc.input.asInstanceOf[VirtualFile].path
+        val position  = s"${t.name.pos.startLine+1}:${t.name.pos.startColumn+1}"
+        val name      = t.name.value
+
+        val tracer    = s"""{ calltracer.trace("$name", "$path", "$position"$args); """
         Patch.addLeft(t.body, tracer) + Patch.addRight(t.body, " }")
     }.asPatch
   }

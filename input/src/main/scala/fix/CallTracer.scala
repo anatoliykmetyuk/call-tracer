@@ -1,9 +1,13 @@
 /*
 rule = CallTracer
 CallTracer = {
-  targets = [foo, g, f, h]
-  excludedArgs = [y]
-  excludedArgsFor.foo = [char]
+  outputPath = false
+  argRules = [
+    {
+      forType = ["Int"]
+    , action  = "x.toString"
+    }
+  ]
 }
 */
 package fix
